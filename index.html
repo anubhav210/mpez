@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4a90d9">
+    <meta name="description" content="Auto Submit Billing Form">
+    <title>Billing Submit</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 90%; }
+        h1 { color: #333; margin-bottom: 1rem; font-size: 1.5rem; }
+        .input-group { margin-bottom: 1rem; text-align: left; }
+        .input-group label { display: block; color: #666; font-size: 0.875rem; margin-bottom: 0.5rem; }
+        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; background: white; }
+        .input-group input:focus, .input-group select:focus { outline: none; border-color: #4a90d9; }
+        p { color: #666; margin-bottom: 1.5rem; }
+        .btn { background: #4a90d9; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; }
+        .btn:hover { background: #357abd; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Billing Report</h1>
+        <div class="input-group">
+            <label>IVRS ID</label>
+            <input type="text" id="ivrs">
+        </div>
+        <div class="input-group">
+            <label>Month</label>
+            <select id="month">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+        </div>
+        <p id="status">Click to download bill</p>
+        <button class="btn" id="submitBtn">Download Bill</button>
+    </div>
+    <script>
+        async function initPWA() {
+            const manifest = {
+                name: "Billing Submit",
+                short_name: "Billing",
+                description: "Auto Submit Billing Form",
+                start_url: "./submit_form.html",
+                display: "standalone",
+                background_color: "#f5f5f5",
+                theme_color: "#4a90d9"
+            };
+            
+            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
+            const manifestURL = URL.createObjectURL(manifestBlob);
+            
+            const link = document.createElement("link");
+            link.rel = "manifest";
+            link.href = manifestURL;
+            document.head.appendChild(link);
+            
+            if ("serviceWorker" in navigator) {
+                const swCode = `
+                    const CACHE_NAME = "billing-v1";
+                    self.addEventListener("install", e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll([]))));
+                    self.addEventListener("fetch", e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+                `;
+                const swBlob = new Blob([swCode], { type: "text/javascript" });
+                const swURL = URL.createObjectURL(swBlob);
+                try {
+                    await navigator.serviceWorker.register(swURL);
+                } catch (e) {}
+            }
+        }
+        
+        initPWA();
+        
+        const params = new URLSearchParams(window.location.search);
+        const ivrsCalled = params.get("ivrsCalled");
+        if (ivrsCalled) {
+            document.getElementById("ivrs").value = ivrsCalled;
+        }
+        
+        const now = new Date();
+        const currentMonthNum = now.getMonth() + 1;
+        let defaultMonthNum = currentMonthNum - 1 || 12;
+        document.getElementById("month").value = defaultMonthNum;
+        
+        document.getElementById("submitBtn").addEventListener("click", submitForm);
+        
+        document.getElementById("ivrs").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") submitForm();
+        });
+        
+        document.getElementById("month").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") submitForm();
+        });
+        
+        function submitForm() {
+            const ivrsInput = document.getElementById("ivrs");
+            const ivrsVal = ivrsInput.value || ivrsCalled || "";
+            const selectedMonth = parseInt(document.getElementById("month").value);
+            let year = now.getFullYear();
+            if (selectedMonth === 12 && currentMonthNum === 1) year--;
+            
+            const month = String(selectedMonth).padStart(2, "0");
+            const dateStr = year + month + "01";
+            
+            const form = document.createElement("form");
+            form.action = "https://billing.mpez.co.in/NGBReport";
+            form.method = "POST";
+            form.target = "_blank";
+            
+            const ivrs = document.createElement("input");
+            ivrs.type = "hidden";
+            ivrs.name = "ivrs";
+            ivrs.value = ivrsVal;
+            
+            const txtDate = document.createElement("input");
+            txtDate.type = "hidden";
+            txtDate.name = "txtDate";
+            txtDate.value = dateStr;
+            
+            form.appendChild(ivrs);
+            form.appendChild(txtDate);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
+</body>
+</html>
