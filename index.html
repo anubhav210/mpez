@@ -48,41 +48,6 @@
         <button class="btn" id="submitBtn">Download Bill</button>
     </div>
     <script>
-        async function initPWA() {
-            const manifest = {
-                name: "Billing Submit",
-                short_name: "Billing",
-                description: "Auto Submit Billing Form",
-                start_url: "./submit_form.html",
-                display: "standalone",
-                background_color: "#f5f5f5",
-                theme_color: "#4a90d9"
-            };
-            
-            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
-            const manifestURL = URL.createObjectURL(manifestBlob);
-            
-            const link = document.createElement("link");
-            link.rel = "manifest";
-            link.href = manifestURL;
-            document.head.appendChild(link);
-            
-            if ("serviceWorker" in navigator) {
-                const swCode = `
-                    const CACHE_NAME = "billing-v1";
-                    self.addEventListener("install", e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll([]))));
-                    self.addEventListener("fetch", e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
-                `;
-                const swBlob = new Blob([swCode], { type: "text/javascript" });
-                const swURL = URL.createObjectURL(swBlob);
-                try {
-                    await navigator.serviceWorker.register(swURL);
-                } catch (e) {}
-            }
-        }
-        
-        initPWA();
-        
         const params = new URLSearchParams(window.location.search);
         const ivrsCalled = params.get("ivrsCalled");
         if (ivrsCalled) {
